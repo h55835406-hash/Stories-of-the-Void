@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stories From The Void</title>
+    <style>
+        :root {
+            --bg: #0a0a0a;
+            --text: #c0c0b0;
+            --accent: #8b0000;
+            --glitch: #4a5d23;
+        }
+
+        body {
+            background-color: var(--bg);
+            color: var(--text);
+            font-family: 'Courier New', Courier, monospace;
+            margin: 0;
+            padding: 0;
+            overflow-x: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            user-select: none;
+        }
+
+        /* CRT Monitor Effect */
+        body::before {
+            content: " ";
+            display: block;
+            position: absolute;
+            top: 0;
+            left: 0;
+            bottom: 0;
+            right: 0;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+            z-index: 2;
+            background-size: 100% 2px, 3px 100%;
+            pointer-events: none;
+        }
+
+        #game-container {
+            max-width: 600px;
+            width: 90%;
+            padding: 20px;
+            position: relative;
+            z-index: 10;
+        }
+
+        h1 {
+            text-align: center;
+            font-size: 2em;
+            text-transform: uppercase;
+            letter-spacing: 5px;
+            margin-bottom: 40px;
+            color: var(--text);
+            text-shadow: 2px 0 var(--accent), -2px 0 var(--glitch);
+            animation: textGlitch 3s infinite;
+        }
+
+        #story-text {
+            font-size: 1.2em;
+            line-height: 1.6;
+            margin-bottom: 30px;
+            min-height: 150px;
+            transition: opacity 0.5s;
+        }
+
+        .choices {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        button {
+            background: transparent;
+            color: var(--text);
+            border: 1px solid var(--text);
+            padding: 15px;
+            font-family: inherit;
+            font-size: 1em;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-transform: uppercase;
+            position: relative;
+            overflow: hidden;
+        }
+
+        button:hover {
+            background: var(--text);
+            color: var(--bg);
+            box-shadow: 0 0 10px var(--text);
+        }
+
+        /* Glitch animations */
+        @keyframes textGlitch {
+            0% { text-shadow: 2px 0 var(--accent), -2px 0 var(--glitch); }
+            5% { text-shadow: -2px 0 var(--accent), 2px 0 var(--glitch); transform: translate(1px, 1px); }
+            10% { text-shadow: 2px 0 var(--accent), -2px 0 var(--glitch); transform: translate(-1px, -1px); }
+            15% { text-shadow: none; transform: none; }
+            100% { text-shadow: none; transform: none; }
+        }
+
+        .shake {
+            animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both;
+        }
+
+        @keyframes shake {
+            10%, 90% { transform: translate3d(-1px, 0, 0); }
+            20%, 80% { transform: translate3d(2px, 0, 0); }
+            30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
+            40%, 60% { transform: translate3d(4px, 0, 0); }
+        }
+
+        .red-flash {
+            animation: redFlash 0.3s forwards;
+        }
+
+        @keyframes redFlash {
+            0% { background-color: var(--accent); }
+            100% { background-color: var(--bg); }
+        }
+
+        /* Ending Art */
+        #art-container {
+            display: none;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+        
+        svg {
+            width: 200px;
+            height: 200px;
+            filter: drop-shadow(0 0 10px #000);
+        }
+
+        .fade-in {
+            opacity: 1 !important;
+        }
+        .fade-out {
+            opacity: 0 !important;
+        }
+
+        #sanity-bar {
+            height: 2px;
+            background: var(--accent);
+            width: 100%;
+            margin-top: 50px;
+            transition: width 1s;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="game-container">
+        <h1>Stories From The Void</h1>
+        
+        <div id="art-container">
+            <!-- SVG will be injected here for endings -->
+        </div>
+
+        <div id="story-text">
+            Нажми "Начать", чтобы открыть глаза. Будь осторожен, звук включится автоматически и может давить на психику.
+        </div>
+        
+        <div class="choices" id="choices-container">
+            <button onclick="startGame()">Начать кошмар</button>
+        </div>
+
+        <div id="sanity-bar" style="display: none;"></div>
+    </div>
+
+    <script>
+        // Audio Engine (Procedural psychological pressure)
+        let audioCtx;
+        let humOsc;
+        let noiseNode;
+        let masterGain;
+
+        function initAudio() {
+            if (audioCtx) return;
+            const AudioContext = window.AudioContext || window.webkitAudioContext;
+            audioCtx = new AudioContext();
+            masterGain = audioCtx.createGain();
+            masterGain.connect(audioCtx.destination);
+            masterGain.gain.value = 0.3;
+
+            // Deep low frequency rumble (Anxiety)
+            humOsc = audioCtx.createOscillator();
+            humOsc.type = 'sawtooth';
+            humOsc.frequency.setValueAtTime(40, audioCtx.currentTime);
+            const humGain = audioCtx.createGain();
+            humGain.gain.setValueAtTime(0.5, audioCtx.currentTime);
+            humOsc.connect(humGain);
+            humGain.connect(masterGain);
+            humOsc.start();
+
+            // Whispering static
+            const bufferSize = audioCtx.sampleRate * 2; // 2 seconds of noise
+            const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+            const data = buffer.getChannelData(0);
+            for (let i = 0; i < bufferSize; i++) {
+                data[i] = Math.random() * 2 - 1;
+            }
+            noiseNode = audioCtx.createBufferSource();
+            noiseNode.buffer = buffer;
+            noiseNode.loop = true;
+            
+            // Filter noise to sound like distant whispers
+            const filter = audioCtx.createBiquadFilter();
+            filter.type = 'bandpass';
+            filter.frequency.value = 1000;
+            
+            const noiseGain = audioCtx.createGain();
+            noiseGain.gain.value = 0; // Starts silent
+            
+            noiseNode.connect(filter);
+            filter.connect(noiseGain);
+            noiseGain.connect(masterGain);
+            noiseNode.start();
+        }
+
+        function setTension(level) {
+            if (!audioCtx) return;
+            // Level 0 to 1
+            if (humOsc) {
+                humOsc.frequency.rampToValueAtTime(40 + (level * 20), audioCtx.currentTime + 1);
+            }
+            // Increase static volume
+            masterGain.gain.rampToValueAtTime(0.3 + (level * 0.4), audioCtx.currentTime + 1);
+        }
+
+        function playHeartbeat() {
+             if (!audioCtx) return;
+             const osc = audioCtx.createOscillator();
+             const gain = audioCtx.createGain();
+             osc.type = 'sine';
+             osc.frequency.setValueAtTime(50, audioCtx.currentTime);
+             osc.frequency.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.5);
+             
+             gain.gain.setValueAtTime(1, audioCtx.currentTime);
+             gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.5);
+             
+             osc.connect(gain);
+             gain.connect(masterGain);
+             osc.start();
+             osc.stop(audioCtx.currentTime + 0.5);
+        }
+
+        // Game State & Engine
+        let sanity = 100;
+        const uiText = document.getElementById('story-text');
+        const uiChoices = document.getElementById('choices-container');
+        const sanityBar = document.getElementById('sanity-bar');
+        const artContainer = document.getElementById('art-container');
+
+        const svgs = {
+            eyeHead: `<svg viewBox="0 0 100 100"><rect x="20" y="20" width="60" height="60" fill="#d2b48c" stroke="#000" stroke-width="2"/><path d="M 25 50 Q 50 30 75 50 Q 50 70 25 50" fill="#fff" stroke="#000" stroke-width="2"/><circle cx="50" cy="50" r="10" fill="#000"/><rect x="45" y="80" width="10" height="20" fill="#333"/><path d="M 30 100 L 70 100 L 60 80 L 40 80 Z" fill="#111"/></svg>`,
+            shroom: `<svg viewBox="0 0 100 100"><path d="M 20 60 Q 50 20 80 60 Z" fill="#d32f2f" stroke="#000" stroke-width="2"/><circle cx="40" cy="40" r="3" fill="#fff"/><circle cx="60" cy="45" r="4" fill="#fff"/><circle cx="50" cy="35" r="2" fill="#fff"/><rect x="45" y="60" width="10" height="30" fill="#e0e0e0" stroke="#000" stroke-width="2"/><path d="M 0 90 Q 50 70 100 90 L 100 100 L 0 100 Z" fill="#4a5d23"/></svg>`
+        };
+
+        const story = {
+            start: {
+                text: "Ты просыпаешься на продавленном диване. Обои свисают лохмотьями. Вместо единственного окна в стене пульсирует гигантский, влажный глаз. Он неотрывно смотрит на тебя.",
+                tension: 0.1,
+                choices: [
+                    { text: "Подойти к глазу", next: "look_eye" },
+                    { text: "Выйти в подъезд", next: "hallway" }
+                ]
+            },
+            look_eye: {
+                text: "Ты подходишь вплотную. Глаз моргает. В твоей голове раздается пронзительный шепот, а из носа начинает капать черная жидкость. Нужно уходить.",
+                tension: 0.4,
+                sanityChange: -20,
+                effect: 'shake',
+                choices: [
+                    { text: "Выбежать в подъезд", next: "hallway" }
+                ]
+            },
+            hallway: {
+                text: "Бесконечный коридор типичной хрущевки. Зеленые облупленные стены. Из щелей старых почтовых ящиков лезут влажные языки, они облизывают металл и шепчут твое имя.",
+                tension: 0.3,
+                choices: [
+                    { text: "Спускаться по лестнице", next: "stairs" },
+                    { text: "Зайти в соседнюю приоткрытую дверь", next: "neighbor_door" }
+                ]
+            },
+            neighbor_door: {
+                text: "Ты толкаешь дверь. Внутри все заросло огромными красными мухоморами. Воздух густой от спор. Чье-то тело вросло в стену, пульсируя в такт твоему сердцу.",
+                tension: 0.5,
+                sanityChange: -10,
+                choices: [
+                    { text: "Обыскать тело", next: "loot_body" },
+                    { text: "Вернуться на лестницу", next: "stairs" }
+                ]
+            },
+            loot_body: {
+                text: "Ты касаешься тела. Оно открывает глаза, полные белой слизи, и хватает тебя за руку. 'Мы - мицелий', хрипит оно. Споры забивают тебе легкие.",
+                tension: 1.0,
+                effect: 'red-flash',
+                choices: [
+                    { text: "...", next: "ending_shroom" }
+                ]
+            },
+            stairs: {
+                text: "Ты спускаешься. Один пролет, второй, десятый. Этаж всегда '4'. Вдруг снизу раздаются тяжелые шаги. Навстречу поднимается Безликий Сосед. На нем строгий черный костюм, но вместо лица — абсолютно гладкая кожа.",
+                tension: 0.7,
+                effect: 'shake',
+                choices: [
+                    { text: "Зажмуриться и стоять у стены", next: "close_eyes" },
+                    { text: "Попытаться пробежать мимо него", next: "run_past" }
+                ]
+            },
+            run_past: {
+                text: "Ты срываешься с места. Сосед мгновенно оказывается перед тобой. Его гладкое лицо разрывается, открывая зубастую пасть. Твой крик тонет в темноте.",
+                tension: 1.0,
+                effect: 'red-flash',
+                choices: [
+                    { text: "...", next: "ending_death" }
+                ]
+            },
+            close_eyes: {
+                text: "Ты закрываешь глаза. Шаги приближаются. Холодное дыхание касается твоей шеи. Пахнет озоном и гнилой землей. Сосед останавливается прямо перед тобой... а затем шаги стихают где-то сверху.",
+                tension: 0.4,
+                choices: [
+                    { text: "Открыть глаза", next: "void_room" }
+                ]
+            },
+            void_room: {
+                text: "Ты открываешь глаза. Лестница исчезла. Ты стоишь в пустой бетонной комнате. Перед тобой две двери. Одна с ярко-красной табличкой 'ВЫХОД'. Вторая — без ручки, из-под нее сочится желтоватый свет.",
+                tension: 0.6,
+                choices: [
+                    { text: "Открыть дверь 'ВЫХОД'", next: "ending_loop" },
+                    { text: "Выбить дверь без ручки", next: "ending_eye" }
+                ]
+            },
+            
+            // ENDINGS
+            ending_shroom: {
+                text: "КОНЦОВКА 1: АССИМИЛЯЦИЯ. Твои ноги каменеют, врастая в бетонный пол подъезда. Из плеч пробиваются шляпки мухоморов. Ты теряешь разум, становясь частью бесконечной грибницы этого дома.",
+                tension: 0.1,
+                art: 'shroom',
+                choices: [
+                    { text: "Начать заново", next: "start" }
+                ]
+            },
+            ending_death: {
+                text: "КОНЦОВКА 2: ПОГЛОЩЕНИЕ. Безликий Сосед забрал твое лицо. Теперь ты будешь вечно бродить по этим лестницам, пугая новых жильцов.",
+                tension: 0.1,
+                choices: [
+                    { text: "Начать заново", next: "start" }
+                ]
+            },
+            ending_loop: {
+                text: "КОНЦОВКА 3: ИЛЛЮЗИЯ. Ты распахиваешь дверь и вываливаешься на улицу. Ты глубоко вдыхаешь... но воздух пахнет пылью. Подняв голову, ты видишь не небо, а гигантский бетонный потолок. Вместо солнца на тебя смотрит тот самый глаз. Ты все еще внутри.",
+                tension: 0.8,
+                choices: [
+                    { text: "Начать заново", next: "start" }
+                ]
+            },
+            ending_eye: {
+                text: "ИСТИННАЯ КОНЦОВКА: НАБЛЮДАТЕЛЬ. Ты выбиваешь дверь. Посреди комнаты стоит зеркало. Ты смотришь в него, но вместо своей головы видишь квадратный монитор с огромным, моргающим глазом. Ты нашел выход, перестав быть жертвой. Теперь ты — часть HAFA STUDIO. Теперь ты — наблюдатель.",
+                tension: 0.0,
+                art: 'eyeHead',
+                choices: [
+                    { text: "Проснуться", next: "start" }
+                ]
+            }
+        };
+
+        function startGame() {
+            initAudio();
+            sanityBar.style.display = 'block';
+            goToNode('start');
+        }
+
+        function goToNode(nodeId) {
+            const node = story[nodeId];
+            
+            // Reset state if restarting
+            if(nodeId === 'start') {
+                sanity = 100;
+                artContainer.style.display = 'none';
+            }
+
+            // Handle Sanity
+            if (node.sanityChange) {
+                sanity += node.sanityChange;
+            }
+            sanityBar.style.width = Math.max(0, sanity) + '%';
+            
+            // Handle Audio/Tension
+            if (node.tension !== undefined) setTension(node.tension);
+            playHeartbeat();
+
+            // Handle Effects
+            if (node.effect === 'shake') {
+                document.body.classList.add('shake');
+                setTimeout(() => document.body.classList.remove('shake'), 500);
+            } else if (node.effect === 'red-flash') {
+                document.body.classList.add('red-flash');
+                setTimeout(() => document.body.classList.remove('red-flash'), 300);
+            }
+
+            // Handle Art
+            if (node.art) {
+                artContainer.innerHTML = svgs[node.art];
+                artContainer.style.display = 'flex';
+            } else {
+                artContainer.style.display = 'none';
+            }
+
+            // Text Animation
+            uiText.classList.add('fade-out');
+            uiChoices.style.opacity = '0';
+            
+            setTimeout(() => {
+                uiText.innerText = node.text;
+                uiText.classList.remove('fade-out');
+                
+                // Render Choices
+                uiChoices.innerHTML = '';
+                node.choices.forEach(choice => {
+                    const btn = document.createElement('button');
+                    btn.innerText = choice.text;
+                    btn.onclick = () => goToNode(choice.next);
+                    uiChoices.appendChild(btn);
+                });
+                uiChoices.style.opacity = '1';
+            }, 500);
+        }
+    </script>
+</body>
+</html>
+
+
